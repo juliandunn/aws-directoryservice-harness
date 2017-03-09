@@ -151,16 +151,19 @@ data "aws_ami" "windows2016" {
 resource "aws_ssm_document" "dsadmin-domainjoin" {
   name    = "dsadmin-domainjoin",
   content = <<DOC
-  {
+{
     "schemaVersion": "1.0",
     "description": "Domain Join Configuration",
     "runtimeConfig": {
       "aws:domainJoin": {
         "properties": {
           "directoryId": "${aws_directory_service_directory.ds-harness-directory.id}",
-          "directoryName": "${var.directory_dn}"
+          "directoryName": "${var.directory_dn}",
           "dnsIpAddresses": ["${join("\",\"", aws_directory_service_directory.ds-harness-directory.dns_ip_addresses)}"]
-  }
+        }
+      }
+    }
+}
 DOC
 }
 
