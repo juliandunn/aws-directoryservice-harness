@@ -86,6 +86,15 @@ resource "aws_security_group_rule" "ds-harness-vpc-ingress-winrm" {
     security_group_id = "${aws_security_group.ds-harness-vpc-windowsboxes-sg.id}"
 }
 
+resource "aws_security_group_rule" "ds-harness-vpc-egress-any" {
+    type = "egress"
+    from_port = 0
+    to_port = 65535
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    security_group_id = "${aws_security_group.ds-harness-vpc-windowsboxes-sg.id}"
+}
+
 # The directory itself
 resource "aws_directory_service_directory" "ds-harness-directory" {
     name = "${var.directory_dn}"
