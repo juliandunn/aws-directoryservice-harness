@@ -13,7 +13,6 @@ resource "aws_vpc" "ds-harness-vpc" {
 
 resource "aws_internet_gateway" "ds-harness-vpc-igw" {
     vpc_id = "${aws_vpc.ds-harness-vpc.id}"
-
     tags {
         Name = "ds-harness-vpc-igw"
     }
@@ -22,6 +21,7 @@ resource "aws_internet_gateway" "ds-harness-vpc-igw" {
 resource "aws_subnet" "ds-harness-vpc-subnet-1" {
     vpc_id = "${aws_vpc.ds-harness-vpc.id}"
     cidr_block = "192.168.16.0/25"
+    availability_zone = "${var.region_subnet_1}"
 
     tags {
         Name = "ds-harness-vpc-subnet-1"
@@ -31,6 +31,7 @@ resource "aws_subnet" "ds-harness-vpc-subnet-1" {
 resource "aws_subnet" "ds-harness-vpc-subnet-2" {
     vpc_id = "${aws_vpc.ds-harness-vpc.id}"
     cidr_block = "192.168.16.128/25"
+    availability_zone = "${var.region_subnet_2}"
 
     tags {
         Name = "ds-harness-vpc-subnet-2"
@@ -85,6 +86,50 @@ resource "aws_security_group_rule" "ds-harness-vpc-ingress-winrm" {
     security_group_id = "${aws_security_group.ds-harness-vpc-windowsboxes-sg.id}"
 }
 
+# The directory itself
+resource "aws_directory_service_directory" "ds-harness-directory" {
+    name = "${var.directory_dn}"
+    password = "${var.directory_password}"
+    type = "SimpleAD"
+    size = "Small"
+    vpc_settings {
+      vpc_id = "${aws_vpc.ds-harness-vpc.id}"
+      subnet_ids = ["${aws_subnet.ds-harness-vpc-subnet-1.id}", "${aws_subnet.ds-harness-vpc-subnet-2.id}"]
+   }
+}
+
+# The instance needs to have a role (with policy provided by AWS)
+# to be able to self-domain-join
+resource "aws_iam_role" "ds-harness-ssm-instance-role" {
+    name = "ds-harness-ssm-instance-role"
+    path = "/"
+    assume_role_policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": "sts:AssumeRole",
+            "Principal": {
+               "Service": "ec2.amazonaws.com"
+            },
+            "Effect": "Allow",
+            "Sid": ""
+        }
+    ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "ds-harness-ssm-instance-role-attach" {
+    role = "${aws_iam_role.ds-harness-ssm-instance-role.name}"
+    policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+}
+
+resource "aws_iam_instance_profile" "ds-harness-ssm-instance-profile" {
+    name = "ds-harness-ssm-instance-profile"
+    roles = ["${aws_iam_role.ds-harness-ssm-instance-role.name}"]
+}
+
 # The Windows management node
 data "aws_ami" "windows2016" {
   most_recent = true
@@ -106,6 +151,8 @@ data "aws_ami" "windows2016" {
 resource "aws_instance" "dsadmin-server" {
     ami = "${data.aws_ami.windows2016.id}"
     instance_type = "${var.dsadmin_instance_size}"
+    iam_instance_profile = "${aws_iam_instance_profile.ds-harness-ssm-instance-profile.id}"
+    associate_public_ip_address = "true"
     tags {
         Name = "directory admin server"
     }
