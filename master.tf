@@ -157,28 +157,13 @@ data "aws_ami" "windows2016" {
   owners = ["amazon"]
 }
 
-resource "aws_ssm_document" "dsadmin-domainjoin" {
-  name    = "dsadmin-domainjoin",
-  content = <<DOC
-{
-    "schemaVersion": "1.0",
-    "description": "Domain Join Configuration",
-    "runtimeConfig": {
-      "aws:domainJoin": {
-        "properties": {
-          "directoryId": "${aws_directory_service_directory.ds-harness-directory.id}",
-          "directoryName": "${var.directory_dn}",
-          "dnsIpAddresses": ["${join("\",\"", aws_directory_service_directory.ds-harness-directory.dns_ip_addresses)}"]
-        }
-      }
-    }
-}
-DOC
-}
-
 resource "aws_ssm_association" "dsadmin-domainjoin-ssmassoc" {
-  name        = "dsadmin-domainjoin-ssmassoc",
+  name        = "AWS-JoinDirectoryServiceDomain"
   instance_id = "${aws_instance.dsadmin-server.id}"
+  parameters {
+    "directoryId" = "${aws_directory_service_directory.ds-harness-directory.id}",
+    "directoryName" = "${var.directory_dn}"
+  }
 }
 
 resource "aws_instance" "dsadmin-server" {
