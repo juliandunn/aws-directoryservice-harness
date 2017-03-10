@@ -162,7 +162,8 @@ resource "aws_ssm_association" "dsadmin-domainjoin-ssmassoc" {
   instance_id = "${aws_instance.dsadmin-server.id}"
   parameters {
     "directoryId" = "${aws_directory_service_directory.ds-harness-directory.id}",
-    "directoryName" = "${var.directory_dn}"
+    "directoryName" = "${var.directory_dn}",
+    #"dnsIpAddresses" = "${aws_directory_service_directory.ds-harness-directory.dns_ip_addresses[0]},${aws_directory_service_directory.ds-harness-directory.dns_ip_addresses[1]}"
   }
 }
 

@@ -1,13 +1,13 @@
 variable "region" {
-    default = "us-west-2"
+    default = "us-east-1"
 }
 
 variable "region_subnet_1" {
-    default = "us-west-2b"
+    default = "us-east-1b"
 }
 
 variable "region_subnet_2" {
-    default = "us-west-2c"
+    default = "us-east-1d"
 }
 
 variable "dsadmin_instance_size" {
